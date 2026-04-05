@@ -1,68 +1,114 @@
-// app.js
+// app.js / index.js
 
-// Import modul yang diperlukan
+// Import modul
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
-// Middleware
+// =======================
+// BUAT FOLDER OTOMATIS
+// =======================
+const folders = ['uploads', 'profile', 'profil_kelas'];
+
+folders.forEach((folder) => {
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder);
+    console.log(`Folder ${folder} dibuat`);
+  }
+});
+
+// =======================
+// MIDDLEWARE
+// =======================
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// static folder
 app.use('/uploads', express.static('uploads'));
 app.use('/profile', express.static('profile'));
 app.use('/profil_kelas', express.static('profil_kelas'));
 
-// Koneksi database
+// =======================
+// KONEKSI DATABASE (Railway)
+// =======================
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '', // Sesuaikan dengan konfigurasi Anda
-    database: 'db_lms',
-    port: 3306,
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT,
 });
 
 db.connect((err) => {
-    if (err) {
-        console.log('Database gagal connect:', err);
-    } else {
-        console.log('Database connected');
-    }
-  
+  if (err) {
+    console.log('Database gagal connect:', err);
+  } else {
+    console.log('Database connected');
+  }
 });
 
-// Konfigurasi multer untuk upload file
+// =======================
+// MULTER (UPLOAD FILE)
+// =======================
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 
-// Inisialisasi multer
 const upload = multer({ storage });
 
-// Konfigurasi multer untuk upload foto kelas
+// =======================
+// MULTER FOTO KELAS
+// =======================
 const storageKelas = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'profil_kelas/'), // ganti folder
-    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (req, file, cb) => cb(null, 'profil_kelas/'),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 
-// Inisialisasi multer khusus untuk foto kelas
 const uploadKelas = multer({ storage: storageKelas });
 
-
-
+// =======================
+// MULTER FOTO PROFILE
+// =======================
 const storageProfile = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'profile/'), // ganti folder
-    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (req, file, cb) => cb(null, 'profile/'),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 
-// Inisialisasi multer khusus untuk foto kelas
 const uploadProfile = multer({ storage: storageProfile });
+
+// =======================
+// TEST API
+// =======================
+app.get('/', (req, res) => {
+  res.send('API LMS jalan 🚀');
+});
+
+// =======================
+// API ENDPOINT (ISI DI SINI)
+// =======================
+// contoh:
+// app.post('/login', ...)
+// app.post('/register', ...)
+
+// =======================
+// PORT (WAJIB UNTUK RAILWAY)
+// =======================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server jalan di port ${PORT}`);
+});
 
 // ============================================================
 // API Endpoints
@@ -1642,7 +1688,3 @@ app.get("/user/:id", (req, res) => {
 });
 
 
-// Jalankan server
-app.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
-});
