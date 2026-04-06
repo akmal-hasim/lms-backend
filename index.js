@@ -38,7 +38,9 @@ app.use('/profil_kelas', express.static('profil_kelas'));
 // =======================
 // KONEKSI DATABASE (Railway)
 // =======================
-const db = mysql.createConnection(process.env.MYSQL_URL);
+const db = mysql.createConnection(
+  "mysql://root:NDvMPiccudgMZGsGhDcvcDysqfQCRgcl@junction.proxy.rlwy.net:14534/railway"
+);
 
 db.connect((err) => {
   if (err) {
