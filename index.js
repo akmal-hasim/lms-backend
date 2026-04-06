@@ -38,13 +38,7 @@ app.use('/profil_kelas', express.static('profil_kelas'));
 // =======================
 // KONEKSI DATABASE (Railway)
 // =======================
-const db = mysql.createConnection({
-  host: "junction.proxy.rlwy.net",
-  user: "root",
-  password: "NDvMPiccudgMZGsGhDcvcDysqfQCRgcl",
-  database: "railway",
-  port: 14534
-});
+const db = mysql.createConnection(process.env.MYSQL_URL);
 
 db.connect((err) => {
   if (err) {
