@@ -115,26 +115,43 @@ app.listen(PORT, () => {
 
 // API Register
 app.post('/register', async (req, res) => {
-    const { nama, email, password, role, kelas } = req.body;
-
-    if (!nama || !email || !password || !role) {
-        return res.status(400).json({ message: 'Data tidak lengkap' });
-    }
-
     try {
+        console.log("BODY MASUK:", req.body);
+
+        const { nama, email, password, role, kelas } = req.body;
+
+        if (!nama || !email || !password || !role) {
+            return res.status(400).json({ message: "Data tidak lengkap" });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        const sql = 'INSERT INTO users (nama, email, password, role, kelas) VALUES (?, ?, ?, ?, ?)';
-        db.query(sql, [nama, email, hashedPassword, role, kelas], (err) => {
+
+        const sql = `
+            INSERT INTO users (nama, email, password, role, kelas)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+
+        db.query(sql, [nama, email, hashedPassword, role, kelas || null], (err, result) => {
             if (err) {
-                if (err.code === 'ER_DUP_ENTRY') {
-                    return res.status(400).json({ message: 'Email sudah digunakan' });
-                }
-                return res.status(500).json({ message: 'Server error' });
+                console.log("MYSQL ERROR FULL:", err);
+
+                return res.status(500).json({
+                    message: err.sqlMessage,
+                    code: err.code
+                });
             }
-            res.status(201).json({ message: 'Register berhasil' });
+
+            res.status(201).json({
+                message: "Register berhasil"
+            });
         });
+
     } catch (error) {
-        res.status(500).json({ message: 'Terjadi kesalahan' });
+        console.log("CATCH ERROR:", error);
+
+        res.status(500).json({
+            message: error.message
+        });
     }
 });
 
