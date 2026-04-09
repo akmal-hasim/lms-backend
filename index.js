@@ -114,44 +114,28 @@ app.listen(PORT, () => {
 // API Endpoints
 
 // API Register
+// API Register
 app.post('/register', async (req, res) => {
+    const { nama, email, password, role, kelas } = req.body;
+
+    if (!nama || !email || !password || !role) {
+        return res.status(400).json({ message: 'Data tidak lengkap' });
+    }
+
     try {
-        console.log("BODY MASUK:", req.body);
-
-        const { nama, email, password, role, kelas } = req.body;
-
-        if (!nama || !email || !password || !role) {
-            return res.status(400).json({ message: "Data tidak lengkap" });
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        const sql = `
-            INSERT INTO users (nama, email, password, role, kelas)
-            VALUES (?, ?, ?, ?, ?)
-        `;
-
-        db.query(sql, [nama, email, hashedPassword, role, kelas || null], (err, result) => {
+        const sql = 'INSERT INTO users (nama, email, password, role, kelas) VALUES (?, ?, ?, ?, ?)';
+        db.query(sql, [nama, email, hashedPassword, role, kelas], (err) => {
             if (err) {
-                console.log("MYSQL ERROR FULL:", err);
-
-                return res.status(500).json({
-                    message: err.sqlMessage,
-                    code: err.code
-                });
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return res.status(400).json({ message: 'Email sudah digunakan' });
+                }
+                return res.status(500).json({ message: 'Server error' });
             }
-
-            res.status(201).json({
-                message: "Register berhasil"
-            });
+            res.status(201).json({ message: 'Register berhasil' });
         });
-
     } catch (error) {
-        console.log("CATCH ERROR:", error);
-
-        res.status(500).json({
-            message: error.message
-        });
+        res.status(500).json({ message: 'Terjadi kesalahan' });
     }
 });
 
@@ -413,6 +397,7 @@ app.get("/quiz/nilai/:quizId/:siswaId", (req, res) => {
 
   const sql = `
 SELECT 
+  g.siswa_id, -- 🔥 TAMBAH INI
   u.nama,
   u.foto_profile,
   q.nama_kuis,
@@ -1298,36 +1283,39 @@ app.get('/quiz-grades/:quizId', (req, res) => {
 
   const sql = `
     SELECT 
-      g.id,
-      g.jumlah_benar,
-      g.jumlah_salah,
-      g.nilai,
-      g.tanggal_kerja,
+  g.id,
+  g.quiz_id,
+  g.siswa_id,
 
-      u.nama,
-      u.foto_profile,
+  g.jumlah_benar,
+  g.jumlah_salah,
+  g.nilai,
+  g.tanggal_kerja,
 
-      q.nama_kuis,
-      q.tipe_penilaian,
+  u.nama,
+  u.foto_profile,
 
-      COUNT(ques.id) AS jumlah_soal
+  q.nama_kuis,
+  q.tipe_penilaian,
 
-    FROM grades g
+  COUNT(ques.id) AS jumlah_soal
 
-    JOIN users u 
-      ON u.id = g.siswa_id
+FROM grades g
 
-    JOIN quizzes q 
-      ON q.id = g.quiz_id
+JOIN users u 
+  ON u.id = g.siswa_id
 
-    LEFT JOIN questions ques
-      ON ques.quiz_id = q.id
+JOIN quizzes q 
+  ON q.id = g.quiz_id
 
-    WHERE g.quiz_id = ?
+LEFT JOIN questions ques
+  ON ques.quiz_id = q.id
 
-    GROUP BY g.id
+WHERE g.quiz_id = ?
 
-    ORDER BY g.tanggal_kerja DESC
+GROUP BY g.id
+
+ORDER BY g.tanggal_kerja DESC
   `;
 
   db.query(sql, [quizId], (err, result) => {
@@ -1705,3 +1693,85 @@ app.get("/user/:id", (req, res) => {
 });
 
 
+
+//=======================================================
+//  penambahan baru 
+
+app.get("/quiz-review/:quizId/:siswaId", (req, res) => {
+  const { quizId, siswaId } = req.params;
+
+  const sql = `
+    SELECT 
+  sa.id,
+  sa.selected_option,
+  sa.is_correct,
+
+  q.teks_pertanyaan,
+  q.gambar_pertanyaan, -- 🔥 TAMBAH INI
+  q.jawaban_benar,
+
+  oa.teks_jawaban AS a,
+  oa.gambar_jawaban AS a_img, -- 🔥
+
+  ob.teks_jawaban AS b,
+  ob.gambar_jawaban AS b_img, -- 🔥
+
+  oc.teks_jawaban AS c,
+  oc.gambar_jawaban AS c_img, -- 🔥
+
+  od.teks_jawaban AS d,
+  od.gambar_jawaban AS d_img -- 🔥
+
+FROM student_answers sa
+
+JOIN questions q 
+  ON q.id = sa.question_id
+
+LEFT JOIN options oa 
+  ON oa.question_id = q.id AND oa.label = 'a'
+
+LEFT JOIN options ob 
+  ON ob.question_id = q.id AND ob.label = 'b'
+
+LEFT JOIN options oc 
+  ON oc.question_id = q.id AND oc.label = 'c'
+
+LEFT JOIN options od 
+  ON od.question_id = q.id AND od.label = 'd'
+
+WHERE sa.quiz_id = ? 
+  AND sa.siswa_id = ?
+  `;
+
+  db.query(sql, [quizId, siswaId], (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Error server" });
+    }
+
+    console.log("HASIL FINAL:", result);
+    res.json(result);
+  });
+});
+
+app.post("/submit-answer", async (req, res) => {
+  const { siswaId, quizId, questionId, jawaban, isCorrect } = req.body;
+
+  db.query(
+    `INSERT INTO student_answers 
+    (siswa_id, quiz_id, question_id, selected_option, is_correct)
+    VALUES (?, ?, ?, ?, ?)`,
+    [siswaId, quizId, questionId, jawaban, isCorrect],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: err });
+      }
+      res.json({ success: true });
+    }
+  );
+});
+
+// Jalankan server
+app.listen(3000, () => {
+    console.log('Server running on http://localhost:3000');
+});
