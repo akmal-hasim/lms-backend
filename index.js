@@ -36,11 +36,14 @@ app.use('/profil_kelas', express.static('profil_kelas'));
 // KONEKSI DATABASE
 // =======================
 const db = mysql.createConnection({
-    host: 'localhost',
+    host: 'mainline.proxy.rlwy.net',
     user: 'root',
-    password: '',
-    database: 'db_smart_quiz',
-    port: 3306,
+    password: 'riOEzaEesBfYNAGAhsIorcdFasJRSCoH',
+    database: 'railway',
+    port: 23347,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 db.connect((err) => {
