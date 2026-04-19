@@ -2242,7 +2242,6 @@ app.put('/user/:user_id/password', async (req, res) => {
 // ─────────────────────────────────────────────
 app.get('/siswa/:siswa_id/kelas', (req, res) => {
     const { siswa_id } = req.params;
-
     const query = `
         SELECT
             kp.id               AS kelas_id,
@@ -2250,7 +2249,6 @@ app.get('/siswa/:siswa_id/kelas', (req, res) => {
             kp.kode_kelas,
             kp.foto_kelas,
             kp.deskripsi,
-
             -- Pesan terakhir di kelas ini
             last_msg.message        AS last_message,
             last_msg.created_at     AS last_activity,
@@ -2264,7 +2262,6 @@ app.get('/siswa/:siswa_id/kelas', (req, res) => {
             ), '') AS last_file_type,
             u.id                    AS last_sender_id,
             u.nama                  AS last_sender_name,
-
             -- Hitung pesan belum dibaca siswa ini
             (
                 SELECT COUNT(*)
@@ -2275,7 +2272,6 @@ app.get('/siswa/:siswa_id/kelas', (req, res) => {
                   AND mv.id IS NULL
                   AND cm2.user_id != ?
             ) AS pesan_baru,
-
             -- Hitung kuis yang belum dikerjakan
             (
                 SELECT COUNT(*)
@@ -2285,10 +2281,8 @@ app.get('/siswa/:siswa_id/kelas', (req, res) => {
                     SELECT quiz_id FROM grades WHERE siswa_id = ?
                   )
             ) AS kuis_baru
-
         FROM class_members cm
         JOIN kelas_pelajaran kp ON kp.id = cm.kelas_id
-
         -- Ambil pesan terakhir
         LEFT JOIN class_messages last_msg ON last_msg.id = (
             SELECT id FROM class_messages
@@ -2297,26 +2291,31 @@ app.get('/siswa/:siswa_id/kelas', (req, res) => {
             LIMIT 1
         )
         LEFT JOIN users u ON u.id = last_msg.user_id
-
         WHERE cm.user_id = ? AND cm.role = 'siswa'
-
-        GROUP BY kp.id
-
+        GROUP BY 
+            kp.id,
+            kp.nama_mapel,
+            kp.kode_kelas,
+            kp.foto_kelas,
+            kp.deskripsi,
+            last_msg.id,
+            last_msg.message,
+            last_msg.created_at,
+            last_msg.message_type,
+            u.id,
+            u.nama
         ORDER BY last_activity DESC
     `;
-
     db.query(query, [siswa_id, siswa_id, siswa_id, siswa_id], (err, results) => {
         if (err) return res.status(500).json({
             status: 'error', message: 'Gagal ambil data kelas'
         });
-
         return res.status(200).json({
             status: 'success',
             data: results,
         });
     });
 });
-
 
 // ─────────────────────────────────────────────
 // 2. POST /siswa/join-kelas
