@@ -2419,7 +2419,6 @@ app.delete('/siswa/:siswa_id/keluar-kelas/:kelas_id', (req, res) => {
 // ─────────────────────────────────────────────
 app.get('/kuis/:kelas_id/list-siswa/:siswa_id', (req, res) => {
     const { kelas_id, siswa_id } = req.params;
-
     db.query(
         `SELECT
             q.id,
@@ -2430,15 +2429,18 @@ app.get('/kuis/:kelas_id/list-siswa/:siswa_id', (req, res) => {
             COUNT(DISTINCT qc.id)  AS jumlah_komentar,
             CASE WHEN g.id IS NOT NULL THEN 1 ELSE 0 END AS sudah_dikerjakan,
             g.nilai
-
          FROM quizzes q
          LEFT JOIN questions qs ON qs.quiz_id = q.id
          LEFT JOIN quiz_comments qc ON qc.quiz_id = q.id
          LEFT JOIN grades g ON g.quiz_id = q.id AND g.siswa_id = ?
-
          WHERE q.kelas_pelajaran_id = ?
-
-         GROUP BY q.id
+         GROUP BY 
+            q.id,
+            q.nama_kuis,
+            q.tipe_penilaian,
+            q.tanggal_dibuat,
+            g.id,
+            g.nilai
          ORDER BY q.tanggal_dibuat ASC`,
         [siswa_id, kelas_id],
         (err, results) => {
@@ -2447,7 +2449,6 @@ app.get('/kuis/:kelas_id/list-siswa/:siswa_id', (req, res) => {
         }
     );
 });
-
 
 // ─────────────────────────────────────────────
 // 5. GET /siswa/:siswa_id/nilai/:quiz_id
