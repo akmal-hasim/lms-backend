@@ -3209,7 +3209,7 @@ app.get('/kelas/:kelas_id/info', (req, res) => {
 // ─────────────────────────────────────────────
 // Jalankan server
 // ─────────────────────────────────────────────
-const PORT = 3000;
+
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
 });
